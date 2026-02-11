@@ -9,7 +9,7 @@
 ターミナルを開いて実行:
 
 ```bash
-cd /Users/haya2/github/srtto-sound-only-live
+cd srtto-sound-only-live
 ./start-test-server.sh
 ```
 

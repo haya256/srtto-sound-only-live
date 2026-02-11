@@ -235,12 +235,6 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 - [SRT Alliance](https://www.srtalliance.org/)
 - [Apple AVFoundation Documentation](https://developer.apple.com/documentation/avfoundation)
 
-## 今後の拡張案
+## 今後の予定
 
-- [ ] 配信履歴の記録
-- [ ] プリセット設定の保存
-- [ ] ネットワーク品質の監視
-- [ ] バックグラウンド配信の最適化
-- [ ] 複数のビットレートでの同時配信
-- [ ] 音声レベルメーター
-- [ ] 録音機能
+- [ ] LISTEN専用にする
