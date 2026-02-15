@@ -18,10 +18,11 @@ class AudioSessionManager {
 
         do {
             // Configure for playback and record to enable microphone input
+            // .duckOthers ensures other apps' audio (like Safari preview) won't interrupt our recording
             try audioSession.setCategory(
                 .playAndRecord,
                 mode: .default,
-                options: [.defaultToSpeaker, .allowBluetooth]
+                options: [.defaultToSpeaker, .allowBluetooth, .duckOthers]
             )
 
             // Set the sample rate to 44.1 kHz
