@@ -1,6 +1,6 @@
 # さぁっと (SRT Audio Streamer)
 
-音声のみをSRT（Secure Reliable Transport）プロトコルで配信するiOSアプリです。iPhoneのマイク音声をSRTサーバーにストリーミングし、低レイテンシーで信頼性の高い音声配信を実現します。
+音声のみをSRT（Secure Reliable Transport）プロトコルで配信するiOSアプリです。
 
 <!-- スクリーンショットを追加する場合は、以下のコメントを解除してください
 ## スクリーンショット
