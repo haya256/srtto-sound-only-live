@@ -40,6 +40,43 @@ struct StreamControlView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
                 }
+
+                // URL history
+                if !viewModel.urlHistory.isEmpty && !viewModel.isStreaming {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("履歴")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        ForEach(Array(viewModel.urlHistory.enumerated()), id: \.offset) { index, url in
+                            HStack {
+                                Button {
+                                    viewModel.configuration.srtURL = url
+                                } label: {
+                                    Text(url)
+                                        .font(.caption)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+
+                                Button {
+                                    viewModel.deleteURLFromHistory(at: index)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(6)
+                        }
+                    }
+                }
             }
 
             // Bitrate selection
@@ -55,6 +92,31 @@ struct StreamControlView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .disabled(viewModel.isStreaming)
+            }
+
+            // Microphone input selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("マイク入力")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Picker("マイク入力", selection: Binding(
+                    get: { viewModel.selectedInputID ?? "" },
+                    set: { newValue in
+                        if newValue.isEmpty {
+                            viewModel.selectInput(nil)
+                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
+                            viewModel.selectInput(port)
+                        }
+                    }
+                )) {
+                    Text("デフォルト").tag("")
+                    ForEach(viewModel.availableInputs) { port in
+                        Text(port.name).tag(port.id)
+                    }
+                }
+                .pickerStyle(.menu)
                 .disabled(viewModel.isStreaming)
             }
 

@@ -21,8 +21,14 @@ class StreamViewModel: ObservableObject {
     @Published var currentBitrate: Double = 0.0
     @Published var currentAudioLevel: Float = 0.0
     @Published var errorMessage: String?
+    @Published var availableInputs: [AudioInputPort] = []
+    @Published var selectedInputID: String?
+    @Published var urlHistory: [String] = []
 
     // MARK: - Private Properties
+
+    private static let urlHistoryKey = "srt_url_history"
+    private static let maxHistoryCount = 10
 
     private let streamingService: SRTStreamingService
     private let audioSessionManager: AudioSessionManager
@@ -35,8 +41,10 @@ class StreamViewModel: ObservableObject {
     ) {
         self.streamingService = streamingService
         self.audioSessionManager = audioSessionManager
+        self.urlHistory = UserDefaults.standard.stringArray(forKey: Self.urlHistoryKey) ?? []
 
         setupCallbacks()
+        setupAudioInputs()
     }
 
     // MARK: - Public Methods
@@ -75,17 +83,76 @@ class StreamViewModel: ObservableObject {
         logger.info("Bitrate updated to \(bitrate) bps")
     }
 
+    /// Selects an audio input by its port ID (nil = system default)
+    func selectInput(_ port: AudioInputPort?) {
+        do {
+            try audioSessionManager.setPreferredInput(port)
+            selectedInputID = port?.id
+            logger.info("Audio input selected: \(port?.name ?? "Default")")
+        } catch {
+            logger.error("Failed to select audio input: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Deletes a URL from history at the given index
+    func deleteURLFromHistory(at index: Int) {
+        guard urlHistory.indices.contains(index) else { return }
+        urlHistory.remove(at: index)
+        UserDefaults.standard.set(urlHistory, forKey: Self.urlHistoryKey)
+    }
+
+    /// Refreshes the list of available audio inputs
+    func refreshAvailableInputs() {
+        availableInputs = audioSessionManager.availableInputs
+        // If the previously selected device is no longer available, reset to default
+        if let selectedID = selectedInputID,
+           !availableInputs.contains(where: { $0.id == selectedID }) {
+            selectedInputID = nil
+            logger.info("Previously selected input no longer available, reset to default")
+        }
+    }
+
     // MARK: - Private Methods
+
+    private func setupAudioInputs() {
+        do {
+            try audioSessionManager.setupAudioSession()
+        } catch {
+            logger.error("Failed to setup audio session for input enumeration: \(error.localizedDescription)")
+        }
+        refreshAvailableInputs()
+
+        audioSessionManager.onAvailableInputsChanged = { [weak self] in
+            Task { @MainActor in
+                self?.refreshAvailableInputs()
+            }
+        }
+        audioSessionManager.startRouteChangeObservation()
+    }
 
     private func performStartStreaming() async {
         do {
             try streamingService.startStreaming(configuration: configuration)
             logger.info("Streaming started successfully")
+            saveURLToHistory(configuration.srtURL)
         } catch {
             logger.error("Failed to start streaming: \(error.localizedDescription)")
             currentState = .error(error.localizedDescription)
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func saveURLToHistory(_ url: String) {
+        guard !url.isEmpty else { return }
+        if let existingIndex = urlHistory.firstIndex(of: url) {
+            urlHistory.remove(at: existingIndex)
+        }
+        urlHistory.insert(url, at: 0)
+        if urlHistory.count > Self.maxHistoryCount {
+            urlHistory = Array(urlHistory.prefix(Self.maxHistoryCount))
+        }
+        UserDefaults.standard.set(urlHistory, forKey: Self.urlHistoryKey)
     }
 
     private func setupCallbacks() {
