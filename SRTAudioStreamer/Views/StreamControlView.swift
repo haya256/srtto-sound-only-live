@@ -11,6 +11,10 @@ import SwiftUI
 struct StreamControlView: View {
     @ObservedObject var viewModel: StreamViewModel
 
+    @State private var chatURL: String = ""
+    @State private var showingBrowser = false
+    @State private var browserURL: URL?
+
     var body: some View {
         VStack(spacing: 24) {
             // SRT URL input
@@ -118,6 +122,36 @@ struct StreamControlView: View {
                 }
                 .pickerStyle(.menu)
                 .disabled(viewModel.isStreaming)
+            }
+
+            // Chat viewer
+            VStack(alignment: .leading, spacing: 8) {
+                Text("チャット確認")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack {
+                    TextField("https://...", text: $chatURL)
+                        .textFieldStyle(.roundedBorder)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+
+                    Button("開く") {
+                        if let url = URL(string: chatURL), url.scheme != nil {
+                            browserURL = url
+                            showingBrowser = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(chatURL.isEmpty)
+                }
+            }
+            .sheet(isPresented: $showingBrowser) {
+                if let url = browserURL {
+                    SafariBrowserView(url: url)
+                        .ignoresSafeArea()
+                }
             }
 
             // Start/Stop button
