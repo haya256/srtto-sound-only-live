@@ -222,16 +222,39 @@ class SRTStreamingService {
     // MARK: - Private Methods
 
     private func startMonitoring(connection: SRTConnection) {
-        monitoringTask = Task {
+        monitoringTask = Task { [weak self] in
+            guard let self else { return }
+            var didAutoStop = false
             for await connected in await connection.$connected.values {
+                if Task.isCancelled { break }
                 await MainActor.run {
                     if connected {
                         self.onStateChange?(.streaming)
-                    } else {
+                    } else if !didAutoStop {
                         self.onStateChange?(.error("接続が切断されました"))
                     }
                 }
+                if !connected && !didAutoStop {
+                    didAutoStop = true
+                    // 切断検知 → リソースを自動クリーンアップしてidleへ戻す
+                    self.stopBitrateMonitoring()
+                    self.stopAudioLevelMonitoring()
+                    await self.performStopStreaming()
+                    break
+                }
             }
+        }
+    }
+
+    /// リソースを強制的に解放してidleへ戻す（ViewModel経由で呼び出す）
+    func forceStop() {
+        logger.info("Force stop requested")
+        stopBitrateMonitoring()
+        stopAudioLevelMonitoring()
+        monitoringTask?.cancel()
+        monitoringTask = nil
+        Task {
+            await performStopStreaming()
         }
     }
 

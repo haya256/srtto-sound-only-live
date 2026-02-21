@@ -176,6 +176,25 @@ struct StreamControlView: View {
                 .cornerRadius(12)
             }
             .disabled(!canToggleStreaming)
+
+            // 強制リセットボタン（エラー時またはスタック時に表示）
+            if viewModel.errorMessage != nil || isStuck {
+                Button(action: {
+                    viewModel.forceReset()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                            .font(.title2)
+                        Text("強制リセット")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+            }
         }
         .padding()
     }
@@ -193,6 +212,13 @@ struct StreamControlView: View {
         } else {
             return viewModel.canStartStreaming && !viewModel.currentState.isTransitioning
         }
+    }
+
+    /// 操作不能なスタック状態（配信中でも待機中でも遷移中でもない）
+    private var isStuck: Bool {
+        !viewModel.isStreaming
+            && !viewModel.canStartStreaming
+            && !viewModel.currentState.isTransitioning
     }
 }
 

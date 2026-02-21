@@ -155,6 +155,14 @@ class StreamViewModel: ObservableObject {
         UserDefaults.standard.set(urlHistory, forKey: Self.urlHistoryKey)
     }
 
+    /// 強制的にリソースを解放してidleへ戻す
+    func forceReset() {
+        logger.info("Force reset requested by user")
+        streamingService.forceStop()
+        currentState = .idle
+        errorMessage = nil
+    }
+
     private func setupCallbacks() {
         // State change callback
         streamingService.onStateChange = { [weak self] state in
@@ -163,10 +171,10 @@ class StreamViewModel: ObservableObject {
                 self.currentState = state
 
                 // Update error message if in error state
+                // .idleへの遷移時はerrorMessageを保持する（切断後に再開ボタンを押せるようにするため）
+                // errorMessageはstartStreaming()/stopStreaming()の呼び出し時にクリアされる
                 if case .error(let message) = state {
                     self.errorMessage = message
-                } else {
-                    self.errorMessage = nil
                 }
             }
         }
