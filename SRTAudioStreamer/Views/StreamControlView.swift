@@ -23,7 +23,7 @@ struct StreamControlView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                TextField("srt://192.168.1.10:9710?mode=caller", text: $viewModel.configuration.srtURL)
+                TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
                     .textFieldStyle(.roundedBorder)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
@@ -31,6 +31,7 @@ struct StreamControlView: View {
                     .keyboardType(.URL)
 
                 // Display entered URL with word wrapping
+                /*
                 if !viewModel.configuration.srtURL.isEmpty {
                     Text(viewModel.configuration.srtURL)
                         .font(.caption)
@@ -44,7 +45,8 @@ struct StreamControlView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
                 }
-
+                */
+                 
                 // URL history
                 if !viewModel.urlHistory.isEmpty && !viewModel.isStreaming {
                     VStack(alignment: .leading, spacing: 4) {
@@ -83,47 +85,6 @@ struct StreamControlView: View {
                 }
             }
 
-            // Bitrate selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ビットレート")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Picker("ビットレート", selection: $viewModel.configuration.bitrate) {
-                    ForEach(StreamConfiguration.bitratePresets, id: \.self) { bitrate in
-                        Text("\(bitrate) kbps")
-                            .tag(bitrate * 1000)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(viewModel.isStreaming)
-            }
-
-            // Microphone input selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("マイク入力")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Picker("マイク入力", selection: Binding(
-                    get: { viewModel.selectedInputID ?? "" },
-                    set: { newValue in
-                        if newValue.isEmpty {
-                            viewModel.selectInput(nil)
-                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
-                            viewModel.selectInput(port)
-                        }
-                    }
-                )) {
-                    Text("デフォルト").tag("")
-                    ForEach(viewModel.availableInputs) { port in
-                        Text(port.name).tag(port.id)
-                    }
-                }
-                .pickerStyle(.menu)
-                .disabled(viewModel.isStreaming)
-            }
-
             // Chat viewer
             VStack(alignment: .leading, spacing: 8) {
                 Text("チャット確認")
@@ -151,7 +112,33 @@ struct StreamControlView: View {
                 if let url = browserURL {
                     SafariBrowserView(url: url)
                         .ignoresSafeArea()
+                        .presentationDetents([.fraction(0.5)])
                 }
+            }
+
+            // Microphone input selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("マイク入力")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Picker("マイク入力", selection: Binding(
+                    get: { viewModel.selectedInputID ?? "" },
+                    set: { newValue in
+                        if newValue.isEmpty {
+                            viewModel.selectInput(nil)
+                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
+                            viewModel.selectInput(port)
+                        }
+                    }
+                )) {
+                    Text("デフォルト").tag("")
+                    ForEach(viewModel.availableInputs) { port in
+                        Text(port.name).tag(port.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(viewModel.isStreaming)
             }
 
             // Start/Stop button
@@ -194,6 +181,31 @@ struct StreamControlView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
+            }
+
+            // Bitrate selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("ビットレート")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Picker("ビットレート", selection: $viewModel.configuration.bitrate) {
+                    ForEach(StreamConfiguration.bitratePresets, id: \.self) { bitrate in
+                        Text("\(bitrate) kbps")
+                            .tag(bitrate * 1000)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(viewModel.isStreaming)
+            }
+
+            // App version
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+               let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                Text("v\(version) (\(build))")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
         .padding()

@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import os.log
+import UserNotifications
 
 /// ViewModel for managing streaming state and business logic
 @MainActor
@@ -32,6 +33,16 @@ class StreamViewModel: ObservableObject {
 
     private let streamingService: SRTStreamingService
     private let audioSessionManager: AudioSessionManager
+    private let notificationManager = NotificationManager.shared
+
+    /// Set to true before user-initiated stop to suppress unexpected-stop notification
+    private var isUserInitiatedStop = false
+    /// Set to true once streaming state is reached in current session
+    private var didReachStreamingState = false
+    /// When silence started (nil = sound is present or not streaming)
+    private var silenceStartDate: Date?
+    /// Prevents repeated silence notifications within same silence period
+    private var silenceNotificationSent = false
 
     // MARK: - Initialization
 
@@ -53,6 +64,10 @@ class StreamViewModel: ObservableObject {
     func startStreaming() {
         logger.info("User requested to start streaming")
         errorMessage = nil
+        isUserInitiatedStop = false
+        didReachStreamingState = false
+        silenceStartDate = nil
+        silenceNotificationSent = false
 
         // Check microphone permission first
         audioSessionManager.requestMicrophonePermission { [weak self] granted in
@@ -73,6 +88,7 @@ class StreamViewModel: ObservableObject {
     func stopStreaming() {
         logger.info("User requested to stop streaming")
         errorMessage = nil
+        isUserInitiatedStop = true
 
         streamingService.stopStreaming()
     }
@@ -158,6 +174,9 @@ class StreamViewModel: ObservableObject {
     /// 強制的にリソースを解放してidleへ戻す
     func forceReset() {
         logger.info("Force reset requested by user")
+        isUserInitiatedStop = true
+        silenceStartDate = nil
+        silenceNotificationSent = false
         streamingService.forceStop()
         currentState = .idle
         errorMessage = nil
@@ -170,11 +189,30 @@ class StreamViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.currentState = state
 
-                // Update error message if in error state
-                // .idleへの遷移時はerrorMessageを保持する（切断後に再開ボタンを押せるようにするため）
-                // errorMessageはstartStreaming()/stopStreaming()の呼び出し時にクリアされる
-                if case .error(let message) = state {
+                switch state {
+                case .streaming:
+                    // Mark that we reached streaming state in this session
+                    self.didReachStreamingState = true
+
+                case .error(let message):
+                    // Update error message and send notification
                     self.errorMessage = message
+                    self.notificationManager.notifyStreamingError(message)
+                    self.silenceStartDate = nil
+                    self.silenceNotificationSent = false
+
+                case .idle:
+                    // Detect unexpected stop: was streaming and not user-initiated
+                    if self.didReachStreamingState && !self.isUserInitiatedStop {
+                        self.notificationManager.notifyUnexpectedStop()
+                    }
+                    self.didReachStreamingState = false
+                    self.isUserInitiatedStop = false
+                    self.silenceStartDate = nil
+                    self.silenceNotificationSent = false
+
+                default:
+                    break
                 }
             }
         }
@@ -192,6 +230,29 @@ class StreamViewModel: ObservableObject {
             Task { @MainActor in
                 guard let self = self else { return }
                 self.currentAudioLevel = level
+
+                // Silence detection: notify after 60 seconds of silence while streaming
+                guard self.currentState.isActive else {
+                    self.silenceStartDate = nil
+                    self.silenceNotificationSent = false
+                    return
+                }
+
+                let isSilent = level <= 5
+                if isSilent {
+                    if self.silenceStartDate == nil {
+                        self.silenceStartDate = Date()
+                    } else if !self.silenceNotificationSent,
+                              let start = self.silenceStartDate,
+                              Date().timeIntervalSince(start) >= 60 {
+                        self.silenceNotificationSent = true
+                        self.notificationManager.notifySilenceDetected()
+                    }
+                } else {
+                    // Sound detected: reset silence tracking
+                    self.silenceStartDate = nil
+                    self.silenceNotificationSent = false
+                }
             }
         }
     }
