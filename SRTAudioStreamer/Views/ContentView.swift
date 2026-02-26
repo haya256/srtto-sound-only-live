@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = StreamViewModel()
+    @State private var showingBrowser = false
+    @State private var browserURL: URL?
 
     var body: some View {
         NavigationView {
@@ -23,7 +25,11 @@ struct ContentView: View {
                     )
 
                     // Control panel
-                    StreamControlView(viewModel: viewModel)
+                    StreamControlView(
+                        viewModel: viewModel,
+                        showingBrowser: $showingBrowser,
+                        browserURL: $browserURL
+                    )
 
                     Spacer(minLength: 20)
                 }
@@ -40,6 +46,22 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                }
+            }
+        }
+        .overlay {
+            if showingBrowser, let url = browserURL {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture { showingBrowser = false }
+
+                    SafariBrowserView(url: url, isPresented: $showingBrowser)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: UIScreen.main.bounds.height * 0.5)
+                        .cornerRadius(12)
+                        .clipped()
+                        .padding(.horizontal, 16)
                 }
             }
         }

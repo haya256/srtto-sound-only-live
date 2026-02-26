@@ -10,10 +10,10 @@ import SwiftUI
 /// View for controlling the streaming session
 struct StreamControlView: View {
     @ObservedObject var viewModel: StreamViewModel
+    @Binding var showingBrowser: Bool
+    @Binding var browserURL: URL?
 
     @State private var chatURL: String = ""
-    @State private var showingBrowser = false
-    @State private var browserURL: URL?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -202,23 +202,6 @@ struct StreamControlView: View {
             }
         }
         .padding()
-        .overlay {
-            if showingBrowser, let url = browserURL {
-                GeometryReader { proxy in
-                    ZStack {
-                        Color.black.opacity(0.4)
-                            .ignoresSafeArea()
-                            .onTapGesture { showingBrowser = false }
-
-                        SafariBrowserView(url: url, isPresented: $showingBrowser)
-                            .frame(width: proxy.size.width, height: proxy.size.height * 0.5)
-                            .cornerRadius(12)
-                            .clipped()
-                    }
-                }
-                .ignoresSafeArea()
-            }
-        }
     }
 
     private var buttonColor: Color {
@@ -245,5 +228,5 @@ struct StreamControlView: View {
 }
 
 #Preview {
-    StreamControlView(viewModel: StreamViewModel())
+    StreamControlView(viewModel: StreamViewModel(), showingBrowser: .constant(false), browserURL: .constant(nil))
 }
