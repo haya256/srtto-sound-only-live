@@ -20,6 +20,7 @@
 		A1000021000000000000001 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1000022000000000000001 /* SRTHaishinKit */; };
 		A1000045000000000000001 /* AudioLevelMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000046000000000000001 /* AudioLevelMonitor.swift */; };
 		A1000047000000000000001 /* SafariBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000048000000000000001 /* SafariBrowserView.swift */; };
+		A611E9E12F4BD46800296A4C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A611E9E02F4BD46800296A4C /* NotificationManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		A1000024000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000046000000000000001 /* AudioLevelMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLevelMonitor.swift; sourceTree = "<group>"; };
 		A1000048000000000000001 /* SafariBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariBrowserView.swift; sourceTree = "<group>"; };
+		A611E9E02F4BD46800296A4C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +115,7 @@
 		A1000032000000000000001 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A611E9E02F4BD46800296A4C /* NotificationManager.swift */,
 				A1000016000000000000001 /* SRTStreamingService.swift */,
 			);
 			path = Services;
@@ -208,6 +211,7 @@
 				A1000007000000000000001 /* StreamConfiguration.swift in Sources */,
 				A1000009000000000000001 /* StreamViewModel.swift in Sources */,
 				A1000011000000000000001 /* StreamControlView.swift in Sources */,
+				A611E9E12F4BD46800296A4C /* NotificationManager.swift in Sources */,
 				A1000013000000000000001 /* StreamStatusView.swift in Sources */,
 				A1000015000000000000001 /* SRTStreamingService.swift in Sources */,
 				A1000017000000000000001 /* AudioSessionManager.swift in Sources */,

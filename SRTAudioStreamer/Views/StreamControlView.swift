@@ -108,38 +108,6 @@ struct StreamControlView: View {
                     .disabled(chatURL.isEmpty)
                 }
             }
-            .sheet(isPresented: $showingBrowser) {
-                if let url = browserURL {
-                    SafariBrowserView(url: url)
-                        .ignoresSafeArea()
-                        .presentationDetents([.fraction(0.5)])
-                }
-            }
-
-            // Microphone input selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("マイク入力")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Picker("マイク入力", selection: Binding(
-                    get: { viewModel.selectedInputID ?? "" },
-                    set: { newValue in
-                        if newValue.isEmpty {
-                            viewModel.selectInput(nil)
-                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
-                            viewModel.selectInput(port)
-                        }
-                    }
-                )) {
-                    Text("デフォルト").tag("")
-                    ForEach(viewModel.availableInputs) { port in
-                        Text(port.name).tag(port.id)
-                    }
-                }
-                .pickerStyle(.menu)
-                .disabled(viewModel.isStreaming)
-            }
 
             // Start/Stop button
             Button(action: {
@@ -183,6 +151,31 @@ struct StreamControlView: View {
                 }
             }
 
+            // Microphone input selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("マイク入力")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Picker("マイク入力", selection: Binding(
+                    get: { viewModel.selectedInputID ?? "" },
+                    set: { newValue in
+                        if newValue.isEmpty {
+                            viewModel.selectInput(nil)
+                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
+                            viewModel.selectInput(port)
+                        }
+                    }
+                )) {
+                    Text("デフォルト").tag("")
+                    ForEach(viewModel.availableInputs) { port in
+                        Text(port.name).tag(port.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(viewModel.isStreaming)
+            }
+
             // Bitrate selection
             VStack(alignment: .leading, spacing: 8) {
                 Text("ビットレート")
@@ -209,6 +202,23 @@ struct StreamControlView: View {
             }
         }
         .padding()
+        .overlay {
+            if showingBrowser, let url = browserURL {
+                GeometryReader { proxy in
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .onTapGesture { showingBrowser = false }
+
+                        SafariBrowserView(url: url, isPresented: $showingBrowser)
+                            .frame(width: proxy.size.width, height: proxy.size.height * 0.5)
+                            .cornerRadius(12)
+                            .clipped()
+                    }
+                }
+                .ignoresSafeArea()
+            }
+        }
     }
 
     private var buttonColor: Color {
