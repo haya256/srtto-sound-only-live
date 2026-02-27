@@ -13,7 +13,7 @@ struct StreamControlView: View {
     @Binding var showingBrowser: Bool
     @Binding var browserURL: URL?
 
-    @State private var chatURL: String = ""
+    @State private var chatURL: String = "https://listen.style/"
 
     var body: some View {
         VStack(spacing: 24) {
