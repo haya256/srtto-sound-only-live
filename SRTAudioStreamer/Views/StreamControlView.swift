@@ -97,6 +97,17 @@ struct StreamControlView: View {
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .overlay(alignment: .trailing) {
+                            if !chatURL.isEmpty {
+                                Button {
+                                    chatURL = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.trailing, 6)
+                            }
+                        }
 
                     Button("開く") {
                         if let url = URL(string: chatURL), url.scheme != nil {
