@@ -104,8 +104,11 @@ struct StreamControlView: View {
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.secondary)
+                                        .padding(.vertical, 10)
+                                        .padding(.trailing, 6)
+                                        .padding(.leading, 16)
                                 }
-                                .padding(.trailing, 6)
+                                .contentShape(Rectangle())
                             }
                         }
 
