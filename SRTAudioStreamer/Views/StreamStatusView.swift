@@ -16,6 +16,26 @@ struct StreamStatusView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            // Audio level display (only when streaming) - 最上部
+            if case .streaming = state {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(audioLevel > 5 ? Color.green : Color.gray.opacity(0.3))
+                        .frame(width: 12, height: 12)
+                        .animation(.easeInOut(duration: 0.2), value: audioLevel)
+
+                    Image(systemName: "mic.fill")
+                        .foregroundColor(audioLevel > 5 ? .green : .gray)
+                        .font(.caption)
+
+                    Text(String(format: "音量: %.0f", audioLevel))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
+            }
+
             // Status indicator
             HStack(spacing: 12) {
                 Circle()
@@ -36,25 +56,6 @@ struct StreamStatusView: View {
                     Text(String(format: "%.1f kbps", bitrate))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                }
-
-                // Audio level display
-                HStack(spacing: 12) {
-                    // Audio level indicator (green dot when audio detected)
-                    Circle()
-                        .fill(audioLevel > 5 ? Color.green : Color.gray.opacity(0.3))
-                        .frame(width: 12, height: 12)
-                        .animation(.easeInOut(duration: 0.2), value: audioLevel)
-
-                    Image(systemName: "mic.fill")
-                        .foregroundColor(audioLevel > 5 ? .green : .gray)
-                        .font(.caption)
-
-                    Text(String(format: "音量: %.0f", audioLevel))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    Spacer()
                 }
             }
 
