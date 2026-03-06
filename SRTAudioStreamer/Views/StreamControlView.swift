@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// View for controlling the streaming session
 struct StreamControlView: View {
@@ -111,6 +112,15 @@ struct StreamControlView: View {
                                 .contentShape(Rectangle())
                             }
                         }
+
+                    Button {
+                        if let text = UIPasteboard.general.string {
+                            chatURL = text
+                        }
+                    } label: {
+                        Image(systemName: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
 
                     Button("開く") {
                         if let url = URL(string: chatURL), url.scheme != nil {
