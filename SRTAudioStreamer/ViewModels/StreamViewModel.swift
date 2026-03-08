@@ -252,7 +252,7 @@ class StreamViewModel: ObservableObject {
                     return
                 }
 
-                let isSilent = level <= 5
+                let isSilent = level <= 0.1
                 if isSilent {
                     if self.silenceStartDate == nil {
                         self.silenceStartDate = Date()
