@@ -139,6 +139,14 @@ struct StreamControlView: View {
                     viewModel.stopStreaming()
                 } else {
                     viewModel.startStreaming()
+                    // 配信開始時にチャットも自動で開く（状態変化の影響を避けるため遅延）
+                    let chatURLString = chatURL
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        if let url = URL(string: chatURLString), url.scheme != nil {
+                            browserURL = url
+                            showingBrowser = true
+                        }
+                    }
                 }
             }) {
                 HStack {
