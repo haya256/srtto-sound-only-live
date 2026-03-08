@@ -13,6 +13,7 @@ enum StreamState: Equatable {
     case connecting
     case streaming
     case disconnecting
+    case reconnecting(attempt: Int, maxAttempts: Int)
     case error(String)
 
     var description: String {
@@ -25,6 +26,8 @@ enum StreamState: Equatable {
             return "配信中"
         case .disconnecting:
             return "切断中"
+        case .reconnecting(let attempt, let maxAttempts):
+            return "再接続中 (\(attempt)/\(maxAttempts))"
         case .error(let message):
             return "エラー: \(message)"
         }
@@ -32,7 +35,7 @@ enum StreamState: Equatable {
 
     var isActive: Bool {
         switch self {
-        case .streaming:
+        case .streaming, .reconnecting:
             return true
         default:
             return false
@@ -41,7 +44,7 @@ enum StreamState: Equatable {
 
     var isTransitioning: Bool {
         switch self {
-        case .connecting, .disconnecting:
+        case .connecting, .disconnecting, .reconnecting:
             return true
         default:
             return false

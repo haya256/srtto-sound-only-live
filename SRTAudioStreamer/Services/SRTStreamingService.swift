@@ -15,12 +15,23 @@ import os.log
 class SRTStreamingService {
     private let logger = Logger(subsystem: "com.example.SRTAudioStreamer", category: "SRTStreaming")
 
+    private static let gracePeriodSeconds: TimeInterval = 5.0
+    private static let maxReconnectAttempts = 3
+    private static let reconnectDelaySeconds: TimeInterval = 2.0
+
     private var connection: SRTConnection?
     private var stream: SRTStream?
     private var mixer: MediaMixer?
     private var audioSessionManager: AudioSessionManager
     private var audioLevelMonitor: AudioLevelMonitor?
     private var monitoringTask: Task<Void, Never>?
+    private var lastURL: URL?
+    private var lastConfiguration: StreamConfiguration?
+    private var isUserInitiatedStop = false
+    private var reconnectCycleCount = 0
+    private var lastReconnectDate: Date?
+    /// 再接続サイクルのカウントをリセットするまでの安定接続時間
+    private static let reconnectCountResetInterval: TimeInterval = 60.0
 
     // Callbacks
     var onStateChange: ((StreamState) -> Void)?
@@ -74,6 +85,11 @@ class SRTStreamingService {
 
         // Update state to connecting
         onStateChange?(.connecting)
+        isUserInitiatedStop = false
+        reconnectCycleCount = 0
+        lastReconnectDate = nil
+        lastURL = url
+        lastConfiguration = configuration
 
         // Start async streaming setup
         Task {
@@ -171,6 +187,7 @@ class SRTStreamingService {
     /// Stops the streaming session
     func stopStreaming() {
         logger.info("Stopping streaming")
+        isUserInitiatedStop = true
 
         onStateChange?(.disconnecting)
 
@@ -190,7 +207,8 @@ class SRTStreamingService {
         }
     }
 
-    private func performStopStreaming() async {
+    /// リソース解放（audioSession deactivateや状態通知は行わない）
+    private func cleanupCurrentResources() async {
         // Close stream
         if let stream = stream {
             await stream.close()
@@ -209,6 +227,10 @@ class SRTStreamingService {
         stream = nil
         connection = nil
         mixer = nil
+    }
+
+    private func performStopStreaming() async {
+        await cleanupCurrentResources()
 
         // Deactivate audio session
         audioSessionManager.deactivateAudioSession()
@@ -224,31 +246,130 @@ class SRTStreamingService {
     private func startMonitoring(connection: SRTConnection) {
         monitoringTask = Task { [weak self] in
             guard let self else { return }
-            var didAutoStop = false
+            var hasSeenConnected = false
             for await connected in await connection.$connected.values {
                 if Task.isCancelled { break }
-                await MainActor.run {
-                    if connected {
-                        self.onStateChange?(.streaming)
-                    } else if !didAutoStop {
-                        self.onStateChange?(.error("接続が切断されました"))
-                    }
+                if connected {
+                    hasSeenConnected = true
+                    continue
                 }
-                if !connected && !didAutoStop {
-                    didAutoStop = true
-                    // 切断検知 → リソースを自動クリーンアップしてidleへ戻す
+
+                // 初期値の false を無視（接続確立前の値）
+                guard hasSeenConnected else {
+                    self.logger.info("Ignoring initial false from $connected (not yet seen connected=true)")
+                    continue
+                }
+
+                // ユーザー操作による停止なら再接続しない
+                if self.isUserInitiatedStop { break }
+
+                self.logger.info("Connection lost, entering grace period (\(Self.gracePeriodSeconds)s)")
+
+                // グレースピリオド: 一時的な途絶からの自動復旧を待つ
+                let recovered = await self.waitForRecovery(connection: connection, timeout: Self.gracePeriodSeconds)
+                if Task.isCancelled { break }
+
+                if recovered {
+                    self.logger.info("Connection recovered during grace period")
+                    // 新しいモニタリングループを開始
+                    self.startMonitoring(connection: connection)
+                    return
+                }
+
+                // 再接続サイクルの上限チェック
+                // 前回の再接続から十分時間が経っていればカウンタをリセット
+                if let lastDate = self.lastReconnectDate,
+                   Date().timeIntervalSince(lastDate) > Self.reconnectCountResetInterval {
+                    self.reconnectCycleCount = 0
+                }
+
+                if self.reconnectCycleCount >= Self.maxReconnectAttempts {
+                    self.logger.error("Max reconnection cycles reached (\(self.reconnectCycleCount)), giving up")
                     self.stopBitrateMonitoring()
                     self.stopAudioLevelMonitoring()
-                    await self.performStopStreaming()
-                    break
+                    await self.cleanupCurrentResources()
+                    await MainActor.run {
+                        self.onStateChange?(.error("接続が切断されました（再接続上限）"))
+                    }
+                    self.audioSessionManager.deactivateAudioSession()
+                    return
                 }
+
+                // グレースピリオド超過 → 再接続を試みる
+                self.reconnectCycleCount += 1
+                self.lastReconnectDate = Date()
+                self.logger.info("Grace period expired, attempting reconnection (cycle \(self.reconnectCycleCount)/\(Self.maxReconnectAttempts))")
+                self.stopBitrateMonitoring()
+                self.stopAudioLevelMonitoring()
+                await self.cleanupCurrentResources()
+
+                if Task.isCancelled { break }
+
+                let reconnected = await self.attemptReconnection()
+                if !reconnected {
+                    // 全リトライ失敗
+                    await MainActor.run {
+                        self.onStateChange?(.error("接続が切断されました"))
+                    }
+                    self.audioSessionManager.deactivateAudioSession()
+                }
+                return
             }
         }
+    }
+
+    /// グレースピリオド中に接続が復旧するか待つ
+    private func waitForRecovery(connection: SRTConnection, timeout: TimeInterval) async -> Bool {
+        let startTime = Date()
+        let pollInterval: UInt64 = 250_000_000 // 250ms in nanoseconds
+
+        while Date().timeIntervalSince(startTime) < timeout {
+            if Task.isCancelled { return false }
+            try? await Task.sleep(nanoseconds: pollInterval)
+            let isConnected = await connection.connected
+            if isConnected { return true }
+        }
+        return false
+    }
+
+    /// 最大maxReconnectAttempts回まで再接続を試みる
+    private func attemptReconnection() async -> Bool {
+        guard let url = lastURL, let configuration = lastConfiguration else {
+            logger.error("No saved URL/configuration for reconnection")
+            return false
+        }
+
+        for attempt in 1...Self.maxReconnectAttempts {
+            if Task.isCancelled || isUserInitiatedStop { return false }
+
+            logger.info("Reconnection attempt \(attempt)/\(Self.maxReconnectAttempts)")
+            await MainActor.run {
+                self.onStateChange?(.reconnecting(attempt: attempt, maxAttempts: Self.maxReconnectAttempts))
+            }
+
+            // 再接続間隔を待つ（初回は即試行）
+            if attempt > 1 {
+                try? await Task.sleep(nanoseconds: UInt64(Self.reconnectDelaySeconds * 1_000_000_000))
+            }
+
+            if Task.isCancelled || isUserInitiatedStop { return false }
+
+            do {
+                try await performStartStreaming(url: url, configuration: configuration)
+                logger.info("Reconnection succeeded on attempt \(attempt)")
+                return true
+            } catch {
+                logger.error("Reconnection attempt \(attempt) failed: \(error.localizedDescription)")
+            }
+        }
+
+        return false
     }
 
     /// リソースを強制的に解放してidleへ戻す（ViewModel経由で呼び出す）
     func forceStop() {
         logger.info("Force stop requested")
+        isUserInitiatedStop = true
         stopBitrateMonitoring()
         stopAudioLevelMonitoring()
         monitoringTask?.cancel()

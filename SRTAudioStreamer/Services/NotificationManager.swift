@@ -47,6 +47,15 @@ class NotificationManager: NSObject {
         )
     }
 
+    /// Notifies that reconnection succeeded after a disconnection
+    func notifyReconnected() {
+        send(
+            identifier: "streaming-reconnected",
+            title: "再接続しました",
+            body: "配信を再開しました。"
+        )
+    }
+
     /// Notifies that 1 minute of silence has been detected during streaming
     func notifySilenceDetected() {
         send(

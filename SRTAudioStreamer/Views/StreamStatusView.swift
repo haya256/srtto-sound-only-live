@@ -36,15 +36,30 @@ struct StreamStatusView: View {
                 }
             }
 
-            // Status indicator
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(stateColor)
-                    .frame(width: 16, height: 16)
+            // Reconnecting indicator
+            if case .reconnecting = state {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text(state.description)
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                }
+            }
 
-                Text(state.description)
-                    .font(.headline)
-                    .foregroundColor(stateColor)
+            // Status indicator
+            if case .reconnecting = state {
+                // Already shown above
+            } else {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(stateColor)
+                        .frame(width: 16, height: 16)
+
+                    Text(state.description)
+                        .font(.headline)
+                        .foregroundColor(stateColor)
+                }
             }
 
             // Bitrate display (only when streaming)
@@ -90,6 +105,8 @@ struct StreamStatusView: View {
         case .streaming:
             return .green
         case .disconnecting:
+            return .orange
+        case .reconnecting:
             return .orange
         case .error:
             return .red

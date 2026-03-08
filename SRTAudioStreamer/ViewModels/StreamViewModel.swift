@@ -43,6 +43,8 @@ class StreamViewModel: ObservableObject {
     private var silenceStartDate: Date?
     /// Prevents repeated silence notifications within same silence period
     private var silenceNotificationSent = false
+    /// Tracks if we were reconnecting (to send notification on recovery)
+    private var wasReconnecting = false
 
     // MARK: - Initialization
 
@@ -175,6 +177,7 @@ class StreamViewModel: ObservableObject {
     func forceReset() {
         logger.info("Force reset requested by user")
         isUserInitiatedStop = true
+        wasReconnecting = false
         silenceStartDate = nil
         silenceNotificationSent = false
         streamingService.forceStop()
@@ -191,12 +194,22 @@ class StreamViewModel: ObservableObject {
 
                 switch state {
                 case .streaming:
+                    // Notify if we recovered from reconnecting
+                    if self.wasReconnecting {
+                        self.wasReconnecting = false
+                        self.notificationManager.notifyReconnected()
+                    }
                     // Mark that we reached streaming state in this session
                     self.didReachStreamingState = true
+
+                case .reconnecting:
+                    self.errorMessage = nil
+                    self.wasReconnecting = true
 
                 case .error(let message):
                     // Update error message and send notification
                     self.errorMessage = message
+                    self.wasReconnecting = false
                     self.notificationManager.notifyStreamingError(message)
                     self.silenceStartDate = nil
                     self.silenceNotificationSent = false
@@ -208,6 +221,7 @@ class StreamViewModel: ObservableObject {
                     }
                     self.didReachStreamingState = false
                     self.isUserInitiatedStop = false
+                    self.wasReconnecting = false
                     self.silenceStartDate = nil
                     self.silenceNotificationSent = false
 
