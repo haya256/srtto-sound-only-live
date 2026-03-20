@@ -95,3 +95,12 @@ iOSInjectionProject/
 
 # Claude Code
 .claude/
+
+# PMO管理ディレクトリ（非公開）
+pmo/
+
+# 設定ファイル（非公開）
+config/
+
+# ユーザーデータ（非公開）
+data/
