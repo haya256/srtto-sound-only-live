@@ -22,7 +22,7 @@ struct StreamConfiguration {
     var sampleRate: Double = 44100
 
     /// Available bitrate presets (in kbps)
-    static let bitratePresets: [Int] = [64, 96, 128]
+    static let bitratePresets: [Int] = [32, 64, 96, 128]
 
     /// Validates the configuration
     var isValid: Bool {

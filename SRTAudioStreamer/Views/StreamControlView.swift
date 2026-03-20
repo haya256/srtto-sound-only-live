@@ -14,7 +14,7 @@ struct StreamControlView: View {
     @Binding var showingBrowser: Bool
     @Binding var browserURL: URL?
 
-    @State private var chatURL: String = "https://listen.style/"
+    @State private var chatURL: String = ""
 
     var body: some View {
         VStack(spacing: 24) {
@@ -123,13 +123,13 @@ struct StreamControlView: View {
                     .buttonStyle(.bordered)
 
                     Button("開く") {
-                        if let url = URL(string: chatURL), url.scheme != nil {
+                        let urlString = chatURL.isEmpty ? "https://listen.style/" : chatURL
+                        if let url = URL(string: urlString), url.scheme != nil {
                             browserURL = url
                             showingBrowser = true
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(chatURL.isEmpty)
                 }
             }
 
@@ -140,7 +140,7 @@ struct StreamControlView: View {
                 } else {
                     viewModel.startStreaming()
                     // 配信開始時にチャットも自動で開く（状態変化の影響を避けるため遅延）
-                    let chatURLString = chatURL
+                    let chatURLString = chatURL.isEmpty ? "https://listen.style/" : chatURL
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         if let url = URL(string: chatURLString), url.scheme != nil {
                             browserURL = url

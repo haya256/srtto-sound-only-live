@@ -16,8 +16,9 @@ class SRTStreamingService {
     private let logger = Logger(subsystem: "com.example.SRTAudioStreamer", category: "SRTStreaming")
 
     private static let gracePeriodSeconds: TimeInterval = 5.0
-    private static let maxReconnectAttempts = 3
-    private static let reconnectDelaySeconds: TimeInterval = 2.0
+    private static let maxReconnectAttempts = 5
+    /// 再接続試行ごとの待機秒数（指数バックオフ）: 試行1=即時, 2=5s, 3=10s, 4=15s, 5=20s
+    private static let reconnectDelays: [TimeInterval] = [0, 5, 10, 15, 20]
 
     private var connection: SRTConnection?
     private var stream: SRTStream?
@@ -146,14 +147,25 @@ class SRTStreamingService {
         logger.info("Mixer started")
 
         // Connect to SRT server (latency is already in URL)
-        logger.info("Attempting to connect to SRT server: \(url.absoluteString)")
-        try await srtConnection.connect(url)
-        logger.info("SRT connection established")
+        // 失敗した場合はローカルリソースを明示的に解放してからthrowする。
+        // これをしないと、startRunning済みのMediaMixerがマイクを占有したまま残り、
+        // 次の再接続試行でattachAudioが失敗する原因になる。
+        do {
+            logger.info("Attempting to connect to SRT server: \(url.absoluteString)")
+            try await srtConnection.connect(url)
+            logger.info("SRT connection established")
 
-        // Check if connected
-        let isConnected = await srtConnection.connected
-        if !isConnected {
-            throw StreamingError.connectionFailed("接続に失敗しました")
+            let isConnected = await srtConnection.connected
+            if !isConnected {
+                throw StreamingError.connectionFailed("接続に失敗しました")
+            }
+        } catch {
+            logger.error("Connection failed, cleaning up local resources: \(error.localizedDescription)")
+            await srtConnection.close()
+            await mediaMixer.stopRunning()
+            try? await mediaMixer.attachAudio(nil)
+            await mediaMixer.removeOutput(srtStream)
+            throw error
         }
 
         // Start publishing
@@ -209,6 +221,11 @@ class SRTStreamingService {
 
     /// リソース解放（audioSession deactivateや状態通知は行わない）
     private func cleanupCurrentResources() async {
+        // Close SRT connection explicitly (socket解放・内部状態リセットのため必須)
+        if let connection = connection {
+            await connection.close()
+        }
+
         // Close stream
         if let stream = stream {
             await stream.close()
@@ -332,7 +349,7 @@ class SRTStreamingService {
         return false
     }
 
-    /// 最大maxReconnectAttempts回まで再接続を試みる
+    /// 最大maxReconnectAttempts回まで再接続を試みる（指数バックオフ + AudioSessionリセット）
     private func attemptReconnection() async -> Bool {
         guard let url = lastURL, let configuration = lastConfiguration else {
             logger.error("No saved URL/configuration for reconnection")
@@ -347,9 +364,25 @@ class SRTStreamingService {
                 self.onStateChange?(.reconnecting(attempt: attempt, maxAttempts: Self.maxReconnectAttempts))
             }
 
-            // 再接続間隔を待つ（初回は即試行）
-            if attempt > 1 {
-                try? await Task.sleep(nanoseconds: UInt64(Self.reconnectDelaySeconds * 1_000_000_000))
+            // 指数バックオフ: 試行ごとに待機時間を増やす
+            let delayIndex = min(attempt - 1, Self.reconnectDelays.count - 1)
+            let delay = Self.reconnectDelays[delayIndex]
+            if delay > 0 {
+                logger.info("Waiting \(delay)s before attempt \(attempt)")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+
+            if Task.isCancelled || isUserInitiatedStop { return false }
+
+            // AudioSessionをリセット
+            // iOSはネットワークエラー時に音声セッションを停止することがあるため、
+            // deactivate→activateで確実にリセットする
+            audioSessionManager.deactivateAudioSession()
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms待つ
+            do {
+                try audioSessionManager.setupAudioSession()
+            } catch {
+                logger.error("Failed to reset audio session on attempt \(attempt): \(error.localizedDescription)")
             }
 
             if Task.isCancelled || isUserInitiatedStop { return false }

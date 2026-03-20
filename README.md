@@ -1,6 +1,6 @@
 # さぁっと (SRT Audio Streamer)
 
-音声のみをSRT（Secure Reliable Transport）プロトコルで配信するiOSアプリです。
+[LISTEN](https://listen.style/) へ音声をSRT（Secure Reliable Transport）プロトコルでライブ配信するiOSアプリです。
 
 <!-- スクリーンショットを追加する場合は、以下のコメントを解除してください
 ## スクリーンショット
@@ -15,8 +15,22 @@
 - ⚡ 低レイテンシー配信（デフォルト120ms）
 - 📊 リアルタイムビットレート表示
 - 🎚️ ビットレート選択（64/96/128 kbps）
+- 💬 LISTENのチャット画面をアプリ内ブラウザで表示（配信開始時に自動オープン）
+- 🔄 接続切断時の自動再接続
 - 📱 iOS 17.0以上対応
 - 🎨 シンプルで使いやすいUI
+
+## LISTENでの使い方
+
+[LISTEN](https://listen.style/) はポッドキャスト・音声配信プラットフォームです。このアプリはLISTENのSRTライブ配信に特化して設計されています。
+
+### 配信手順
+
+1. LISTENにログインし、ライブ配信の設定からSRT URLを取得する
+   - SRT URLの形式: `srt://live.listen.style:8890?streamid=...`
+2. アプリを起動し、取得したSRT URLを入力する
+3. 必要に応じてチャット確認URLを入力する（空欄の場合は `https://listen.style/` が開く）
+4. 「配信開始」をタップすると配信が始まり、チャット画面が自動で開く
 
 ## 必要環境
 
@@ -70,47 +84,23 @@ SRTAudioStreamer/
     └── AudioSessionManager.swift      # AVAudioSession管理
 ```
 
-## 使い方
+## アプリの操作方法
 
-### 1. テストサーバーの準備
-
-#### オプション1: FFmpeg（推奨）
-
-```bash
-# FFmpegのインストール（初回のみ）
-brew install ffmpeg
-
-# SRT受信サーバーを起動
-ffmpeg -i srt://0.0.0.0:9710?mode=listener -f null -
-```
-
-#### オプション2: OBS Studio
-
-1. OBS Studioをインストール
-2. 設定 → 配信 → サービス: カスタム
-3. サーバー: `srt://0.0.0.0:9710?mode=listener`
-
-### 2. ネットワーク設定
-
-1. MacのIPアドレスを確認:
-```bash
-ifconfig | grep "inet " | grep -v 127.0.0.1
-```
-
-2. iPhoneとMacを同じWi-Fiネットワークに接続
-
-### 3. アプリでの配信
+### 1. 初回設定
 
 1. アプリを起動
 2. 初回起動時、マイク権限を許可
-3. SRT URLを入力: `srt://[MacのIP]:9710?mode=caller`
-   - 例: `srt://192.168.1.10:9710?mode=caller`
-4. ビットレートを選択（デフォルト: 64 kbps）
-5. 「配信開始」ボタンをタップ
-6. 状態が「配信中」になり、ビットレートが表示されることを確認
-7. FFmpeg/OBSで音声が受信されることを確認
+3. LISTENから取得したSRT URLを入力する
+4. 必要に応じてチャット確認URLを入力する（空欄のままでも可）
+5. ビットレートを選択（デフォルト: 64 kbps）
 
-### 4. 配信の停止
+### 2. 配信の開始
+
+「配信開始」ボタンをタップすると:
+- SRTサーバーへ接続し、音声配信が始まる
+- チャット確認画面がアプリ内ブラウザで自動的に開く（URLが空欄の場合は `https://listen.style/` が開く）
+
+### 3. 配信の停止
 
 「配信停止」ボタンをタップして配信を終了します。
 
@@ -235,6 +225,3 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 - [SRT Alliance](https://www.srtalliance.org/)
 - [Apple AVFoundation Documentation](https://developer.apple.com/documentation/avfoundation)
 
-## 今後の予定
-
-- [ ] LISTEN専用にする
