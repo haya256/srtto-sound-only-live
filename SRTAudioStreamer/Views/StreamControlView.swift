@@ -16,6 +16,9 @@ struct StreamControlView: View {
 
     @State private var chatURL: String = ""
     @FocusState private var srtURLFocused: Bool
+    @State private var renamingIndex: Int? = nil
+    @State private var renamingText: String = ""
+    @FocusState private var renamingFocused: Bool
 
     var body: some View {
         VStack(spacing: 24) {
@@ -24,11 +27,6 @@ struct StreamControlView: View {
                 Text("SRT URL")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-
-                TextField("名前（任意）", text: $viewModel.configuration.srtName)
-                    .textFieldStyle(.roundedBorder)
-                    .autocorrectionDisabled()
-                    .disabled(viewModel.isStreaming)
 
                 if srtURLFocused || viewModel.configuration.srtURL.isEmpty {
                     TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
@@ -65,36 +63,71 @@ struct StreamControlView: View {
                             .foregroundColor(.secondary)
 
                         ForEach(Array(viewModel.urlHistory.enumerated()), id: \.offset) { index, entry in
-                            HStack {
-                                Button {
-                                    viewModel.configuration.srtName = entry.name
-                                    viewModel.configuration.srtURL = entry.url
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        if !entry.name.isEmpty {
-                                            Text(entry.name)
-                                                .font(.caption.bold())
-                                                .foregroundColor(.primary)
+                            VStack(spacing: 4) {
+                                HStack {
+                                    Button {
+                                        viewModel.configuration.srtName = entry.name
+                                        viewModel.configuration.srtURL = entry.url
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            if !entry.name.isEmpty {
+                                                Text(entry.name)
+                                                    .font(.caption.bold())
+                                                    .foregroundColor(.primary)
+                                                    .lineLimit(1)
+                                                    .fixedSize(horizontal: true, vertical: false)
+                                            }
+                                            Text(entry.url)
+                                                .font(.caption)
+                                                .foregroundColor(entry.name.isEmpty ? .primary : .secondary)
                                                 .lineLimit(1)
-                                                .fixedSize(horizontal: true, vertical: false)
+                                                .truncationMode(.head)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
                                         }
-                                        Text(entry.url)
-                                            .font(.caption)
-                                            .foregroundColor(entry.name.isEmpty ? .primary : .secondary)
-                                            .lineLimit(1)
-                                            .truncationMode(.head)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
                                     }
+                                    .simultaneousGesture(LongPressGesture().onEnded { _ in
+                                        renamingText = entry.name
+                                        renamingIndex = index
+                                        renamingFocused = true
+                                    })
+
+                                    Button {
+                                        viewModel.deleteURLFromHistory(at: index)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                            .font(.caption)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
 
-                                Button {
-                                    viewModel.deleteURLFromHistory(at: index)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
-                                        .font(.caption)
+                                if renamingIndex == index {
+                                    HStack {
+                                        TextField("名前を入力", text: $renamingText)
+                                            .textFieldStyle(.roundedBorder)
+                                            .font(.caption)
+                                            .focused($renamingFocused)
+                                            .onSubmit {
+                                                viewModel.renameEntry(at: index, name: renamingText)
+                                                renamingIndex = nil
+                                            }
+                                        Button {
+                                            viewModel.renameEntry(at: index, name: renamingText)
+                                            renamingIndex = nil
+                                        } label: {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.blue)
+                                        }
+                                        .buttonStyle(.plain)
+                                        Button {
+                                            renamingIndex = nil
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
-                                .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)

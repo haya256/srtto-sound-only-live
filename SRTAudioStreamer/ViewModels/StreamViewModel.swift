@@ -127,6 +127,13 @@ class StreamViewModel: ObservableObject {
         saveHistoryToDefaults()
     }
 
+    /// Updates the name of a history entry at the given index
+    func renameEntry(at index: Int, name: String) {
+        guard urlHistory.indices.contains(index) else { return }
+        urlHistory[index].name = name
+        saveHistoryToDefaults()
+    }
+
     /// Refreshes the list of available audio inputs
     func refreshAvailableInputs() {
         availableInputs = audioSessionManager.availableInputs
