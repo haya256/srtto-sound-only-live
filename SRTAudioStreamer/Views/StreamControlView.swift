@@ -316,11 +316,12 @@ struct StreamControlView: View {
         }
     }
 
-    /// 操作不能なスタック状態（配信中でも待機中でも遷移中でもない）
+    /// 操作不能なスタック状態（配信中でも待機中でも遷移中でもない、かつURLが入力済み）
     private var isStuck: Bool {
         !viewModel.isStreaming
             && !viewModel.canStartStreaming
             && !viewModel.currentState.isTransitioning
+            && viewModel.configuration.isValid
     }
 }
 
