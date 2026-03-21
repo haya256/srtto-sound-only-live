@@ -4,33 +4,38 @@
 //
 
 import SwiftUI
-import SafariServices
+import UIKit
+import WebKit
 
-struct SafariBrowserView: UIViewControllerRepresentable {
+struct SafariBrowserView: UIViewRepresentable {
     let url: URL
     @Binding var isPresented: Bool
+    @Binding var currentURL: URL?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(isPresented: $isPresented)
+        Coordinator(isPresented: $isPresented, currentURL: $currentURL)
     }
 
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let vc = SFSafariViewController(url: url)
-        vc.delegate = context.coordinator
-        return vc
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
+        webView.load(URLRequest(url: url))
+        return webView
     }
 
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+    func updateUIView(_ webView: WKWebView, context: Context) {}
 
-    class Coordinator: NSObject, SFSafariViewControllerDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate {
         @Binding var isPresented: Bool
+        @Binding var currentURL: URL?
 
-        init(isPresented: Binding<Bool>) {
+        init(isPresented: Binding<Bool>, currentURL: Binding<URL?>) {
             _isPresented = isPresented
+            _currentURL = currentURL
         }
 
-        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-            isPresented = false
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            currentURL = webView.url
         }
     }
 }

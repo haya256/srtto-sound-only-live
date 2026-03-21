@@ -56,7 +56,7 @@ struct ContentView: View {
                         .ignoresSafeArea()
                         .onTapGesture { showingBrowser = false }
 
-                    SafariBrowserView(url: url, isPresented: $showingBrowser)
+                    SafariBrowserView(url: url, isPresented: $showingBrowser, currentURL: $browserURL)
                         .frame(maxWidth: .infinity)
                         .frame(height: min(500, UIScreen.main.bounds.height * 0.63))
                         .cornerRadius(12)
