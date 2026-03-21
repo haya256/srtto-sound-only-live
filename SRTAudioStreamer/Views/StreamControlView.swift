@@ -25,9 +25,14 @@ struct StreamControlView: View {
         VStack(spacing: 24) {
             // SRT URL input
             VStack(alignment: .leading, spacing: 8) {
-                Text("SRT URL")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 2) {
+                    Text("SRTサーバー(URL)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text("*")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
 
                 ZStack {
                     TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
