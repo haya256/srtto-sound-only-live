@@ -237,45 +237,51 @@ struct StreamControlView: View {
                 }
             }
 
-            // Microphone input selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("マイク入力")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+            // Advanced settings
+            DisclosureGroup("詳細設定") {
+                VStack(spacing: 16) {
+                    // Microphone input selection
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("マイク入力")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
 
-                Picker("マイク入力", selection: Binding(
-                    get: { viewModel.selectedInputID ?? "" },
-                    set: { newValue in
-                        if newValue.isEmpty {
-                            viewModel.selectInput(nil)
-                        } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
-                            viewModel.selectInput(port)
+                        Picker("マイク入力", selection: Binding(
+                            get: { viewModel.selectedInputID ?? "" },
+                            set: { newValue in
+                                if newValue.isEmpty {
+                                    viewModel.selectInput(nil)
+                                } else if let port = viewModel.availableInputs.first(where: { $0.id == newValue }) {
+                                    viewModel.selectInput(port)
+                                }
+                            }
+                        )) {
+                            Text("デフォルト").tag("")
+                            ForEach(viewModel.availableInputs) { port in
+                                Text(port.name).tag(port.id)
+                            }
                         }
+                        .pickerStyle(.menu)
+                        .disabled(viewModel.isStreaming)
                     }
-                )) {
-                    Text("デフォルト").tag("")
-                    ForEach(viewModel.availableInputs) { port in
-                        Text(port.name).tag(port.id)
+
+                    // Bitrate selection
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ビットレート")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Picker("ビットレート", selection: $viewModel.configuration.bitrate) {
+                            ForEach(StreamConfiguration.bitratePresets, id: \.self) { bitrate in
+                                Text("\(bitrate) kbps")
+                                    .tag(bitrate * 1000)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(viewModel.isStreaming)
                     }
                 }
-                .pickerStyle(.menu)
-                .disabled(viewModel.isStreaming)
-            }
-
-            // Bitrate selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ビットレート")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Picker("ビットレート", selection: $viewModel.configuration.bitrate) {
-                    ForEach(StreamConfiguration.bitratePresets, id: \.self) { bitrate in
-                        Text("\(bitrate) kbps")
-                            .tag(bitrate * 1000)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(viewModel.isStreaming)
+                .padding(.top, 8)
             }
 
             // App version
