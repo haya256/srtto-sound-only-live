@@ -51,7 +51,9 @@ struct StreamControlView: View {
                                 .stroke(Color(.systemGray4), lineWidth: 0.5)
                         )
                         .onTapGesture {
-                            srtURLFocused = true
+                            DispatchQueue.main.async {
+                                srtURLFocused = true
+                            }
                         }
                 }
 
