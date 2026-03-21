@@ -58,7 +58,7 @@ struct ContentView: View {
 
                     SafariBrowserView(url: url, isPresented: $showingBrowser)
                         .frame(maxWidth: .infinity)
-                        .frame(height: UIScreen.main.bounds.height * 0.5)
+                        .frame(height: min(500, UIScreen.main.bounds.height * 0.63))
                         .cornerRadius(12)
                         .clipped()
                         .padding(.horizontal, 16)

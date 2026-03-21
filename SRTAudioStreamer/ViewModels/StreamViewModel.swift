@@ -24,11 +24,11 @@ class StreamViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var availableInputs: [AudioInputPort] = []
     @Published var selectedInputID: String?
-    @Published var urlHistory: [String] = []
+    @Published var urlHistory: [SRTEntry] = []
 
     // MARK: - Private Properties
 
-    private static let urlHistoryKey = "srt_url_history"
+    private static let urlHistoryKey = "srt_entry_history"
     private static let maxHistoryCount = 10
 
     private let streamingService: SRTStreamingService
@@ -54,7 +54,14 @@ class StreamViewModel: ObservableObject {
     ) {
         self.streamingService = streamingService
         self.audioSessionManager = audioSessionManager
-        self.urlHistory = UserDefaults.standard.stringArray(forKey: Self.urlHistoryKey) ?? []
+        if let data = UserDefaults.standard.data(forKey: Self.urlHistoryKey),
+           let entries = try? JSONDecoder().decode([SRTEntry].self, from: data) {
+            self.urlHistory = entries
+            if let last = entries.first {
+                self.configuration.srtURL = last.url
+                self.configuration.srtName = last.name
+            }
+        }
 
         setupCallbacks()
         setupAudioInputs()
@@ -113,11 +120,11 @@ class StreamViewModel: ObservableObject {
         }
     }
 
-    /// Deletes a URL from history at the given index
+    /// Deletes an entry from history at the given index
     func deleteURLFromHistory(at index: Int) {
         guard urlHistory.indices.contains(index) else { return }
         urlHistory.remove(at: index)
-        UserDefaults.standard.set(urlHistory, forKey: Self.urlHistoryKey)
+        saveHistoryToDefaults()
     }
 
     /// Refreshes the list of available audio inputs
@@ -153,7 +160,7 @@ class StreamViewModel: ObservableObject {
         do {
             try streamingService.startStreaming(configuration: configuration)
             logger.info("Streaming started successfully")
-            saveURLToHistory(configuration.srtURL)
+            saveURLToHistory(name: configuration.srtName, url: configuration.srtURL)
         } catch {
             logger.error("Failed to start streaming: \(error.localizedDescription)")
             currentState = .error(error.localizedDescription)
@@ -161,16 +168,20 @@ class StreamViewModel: ObservableObject {
         }
     }
 
-    private func saveURLToHistory(_ url: String) {
+    private func saveURLToHistory(name: String, url: String) {
         guard !url.isEmpty else { return }
-        if let existingIndex = urlHistory.firstIndex(of: url) {
-            urlHistory.remove(at: existingIndex)
-        }
-        urlHistory.insert(url, at: 0)
+        urlHistory.removeAll { $0.url == url }
+        urlHistory.insert(SRTEntry(name: name, url: url), at: 0)
         if urlHistory.count > Self.maxHistoryCount {
             urlHistory = Array(urlHistory.prefix(Self.maxHistoryCount))
         }
-        UserDefaults.standard.set(urlHistory, forKey: Self.urlHistoryKey)
+        saveHistoryToDefaults()
+    }
+
+    private func saveHistoryToDefaults() {
+        if let data = try? JSONEncoder().encode(urlHistory) {
+            UserDefaults.standard.set(data, forKey: Self.urlHistoryKey)
+        }
     }
 
     /// 強制的にリソースを解放してidleへ戻す

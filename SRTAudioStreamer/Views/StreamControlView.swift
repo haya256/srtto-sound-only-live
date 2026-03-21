@@ -15,6 +15,7 @@ struct StreamControlView: View {
     @Binding var browserURL: URL?
 
     @State private var chatURL: String = ""
+    @FocusState private var srtURLFocused: Bool
 
     var body: some View {
         VStack(spacing: 24) {
@@ -24,30 +25,38 @@ struct StreamControlView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
+                TextField("名前（任意）", text: $viewModel.configuration.srtName)
                     .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .disabled(viewModel.isStreaming)
-                    .keyboardType(.URL)
 
-                // Display entered URL with word wrapping
-                /*
-                if !viewModel.configuration.srtURL.isEmpty {
+                if srtURLFocused || viewModel.configuration.srtURL.isEmpty {
+                    TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
+                        .textFieldStyle(.roundedBorder)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .disabled(viewModel.isStreaming)
+                        .keyboardType(.URL)
+                        .focused($srtURLFocused)
+                } else {
                     Text(viewModel.configuration.srtURL)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 4)
+                        .font(.body)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundColor(.primary)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 7)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                        .background(Color(.systemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.systemGray4), lineWidth: 0.5)
+                        )
+                        .onTapGesture {
+                            srtURLFocused = true
+                        }
                 }
-                */
-                 
+
                 // URL history
                 if !viewModel.urlHistory.isEmpty && !viewModel.isStreaming {
                     VStack(alignment: .leading, spacing: 4) {
@@ -55,17 +64,27 @@ struct StreamControlView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        ForEach(Array(viewModel.urlHistory.enumerated()), id: \.offset) { index, url in
+                        ForEach(Array(viewModel.urlHistory.enumerated()), id: \.offset) { index, entry in
                             HStack {
                                 Button {
-                                    viewModel.configuration.srtURL = url
+                                    viewModel.configuration.srtName = entry.name
+                                    viewModel.configuration.srtURL = entry.url
                                 } label: {
-                                    Text(url)
-                                        .font(.caption)
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    HStack(spacing: 4) {
+                                        if !entry.name.isEmpty {
+                                            Text(entry.name)
+                                                .font(.caption.bold())
+                                                .foregroundColor(.primary)
+                                                .lineLimit(1)
+                                                .fixedSize(horizontal: true, vertical: false)
+                                        }
+                                        Text(entry.url)
+                                            .font(.caption)
+                                            .foregroundColor(entry.name.isEmpty ? .primary : .secondary)
+                                            .lineLimit(1)
+                                            .truncationMode(.head)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
                                 }
 
                                 Button {
@@ -234,6 +253,11 @@ struct StreamControlView: View {
             }
         }
         .padding()
+        .onChange(of: showingBrowser) { isShowing in
+            if !isShowing, let url = browserURL {
+                chatURL = url.absoluteString
+            }
+        }
     }
 
     private var buttonColor: Color {
