@@ -16,6 +16,7 @@ struct StreamControlView: View {
 
     @State private var chatURL: String = ""
     @FocusState private var srtURLFocused: Bool
+    @FocusState private var chatURLFocused: Bool
     @State private var renamingIndex: Int? = nil
     @State private var renamingText: String = ""
     @FocusState private var renamingFocused: Bool
@@ -28,7 +29,7 @@ struct StreamControlView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                if srtURLFocused || viewModel.configuration.srtURL.isEmpty {
+                ZStack {
                     TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
                         .textFieldStyle(.roundedBorder)
                         .autocapitalization(.none)
@@ -36,25 +37,25 @@ struct StreamControlView: View {
                         .disabled(viewModel.isStreaming)
                         .keyboardType(.URL)
                         .focused($srtURLFocused)
-                } else {
-                    Text(viewModel.configuration.srtURL)
-                        .font(.body)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 7)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemBackground))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(.systemGray4), lineWidth: 0.5)
-                        )
-                        .onTapGesture {
-                            DispatchQueue.main.async {
+
+                    if !srtURLFocused && !viewModel.configuration.srtURL.isEmpty {
+                        Text(viewModel.configuration.srtURL)
+                            .font(.body)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.systemBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(.systemGray4), lineWidth: 0.5)
+                            )
+                            .onTapGesture {
                                 srtURLFocused = true
                             }
-                        }
+                    }
                 }
 
                 // URL history
@@ -142,30 +143,38 @@ struct StreamControlView: View {
 
             // Chat viewer
             VStack(alignment: .leading, spacing: 8) {
-                Text("チャット確認")
+                Text("チャット確認URL")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
                 HStack {
-                    TextField("https://...", text: $chatURL)
-                        .textFieldStyle(.roundedBorder)
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        .overlay(alignment: .trailing) {
-                            if !chatURL.isEmpty {
-                                Button {
-                                    chatURL = ""
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
-                                        .padding(.vertical, 10)
-                                        .padding(.trailing, 6)
-                                        .padding(.leading, 16)
+                    ZStack {
+                        TextField("https://...", text: $chatURL)
+                            .textFieldStyle(.roundedBorder)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .focused($chatURLFocused)
+
+                        if !chatURLFocused && !chatURL.isEmpty {
+                            Text(chatURL)
+                                .font(.body)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 7)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(.systemBackground))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color(.systemGray4), lineWidth: 0.5)
+                                )
+                                .onTapGesture {
+                                    chatURLFocused = true
                                 }
-                                .contentShape(Rectangle())
-                            }
                         }
+                    }
 
                     Button {
                         if let text = UIPasteboard.general.string {
