@@ -2,11 +2,9 @@
 
 [LISTEN](https://listen.style/) へ音声をSRT（Secure Reliable Transport）プロトコルでライブ配信するiOSアプリです。
 
-<!-- スクリーンショットを追加する場合は、以下のコメントを解除してください
 ## スクリーンショット
 
-![アプリ画面](screenshots/app-screenshot.png)
--->
+<img src="docs/screenshots/screenshot.png" width="300" alt="アプリ画面">
 
 ## 特徴
 
