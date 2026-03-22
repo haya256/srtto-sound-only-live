@@ -34,33 +34,45 @@ struct StreamControlView: View {
                         .foregroundColor(.red)
                 }
 
-                ZStack {
-                    TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
-                        .textFieldStyle(.roundedBorder)
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .disabled(viewModel.isStreaming)
-                        .keyboardType(.URL)
-                        .focused($srtURLFocused)
+                HStack {
+                    ZStack {
+                        TextField("srt://live.listen.style:8890?...", text: $viewModel.configuration.srtURL)
+                            .textFieldStyle(.roundedBorder)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                            .disabled(viewModel.isStreaming)
+                            .keyboardType(.URL)
+                            .focused($srtURLFocused)
 
-                    if !srtURLFocused && !viewModel.configuration.srtURL.isEmpty {
-                        Text(viewModel.configuration.srtURL)
-                            .font(.body)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 7)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.systemBackground))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(.systemGray4), lineWidth: 0.5)
-                            )
-                            .onTapGesture {
-                                srtURLFocused = true
-                            }
+                        if !srtURLFocused && !viewModel.configuration.srtURL.isEmpty {
+                            Text(viewModel.configuration.srtURL)
+                                .font(.body)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 7)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(.systemBackground))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color(.systemGray4), lineWidth: 0.5)
+                                )
+                                .onTapGesture {
+                                    srtURLFocused = true
+                                }
+                        }
                     }
+
+                    Button {
+                        if let text = UIPasteboard.general.string {
+                            viewModel.configuration.srtURL = text
+                        }
+                    } label: {
+                        Image(systemName: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isStreaming)
                 }
 
                 // URL history
