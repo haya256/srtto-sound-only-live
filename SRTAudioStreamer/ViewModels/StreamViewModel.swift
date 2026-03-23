@@ -25,6 +25,21 @@ class StreamViewModel: ObservableObject {
     @Published var availableInputs: [AudioInputPort] = []
     @Published var selectedInputID: String?
     @Published var urlHistory: [SRTEntry] = []
+    @Published var eventLog: [LogEntry] = []
+
+    struct LogEntry: Identifiable {
+        let id = UUID()
+        let date: Date
+        let message: String
+
+        var timeString: String {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm:ss"
+            return f.string(from: date)
+        }
+    }
+
+    private static let maxLogEntries = 50
 
     // MARK: - Private Properties
 
@@ -191,6 +206,14 @@ class StreamViewModel: ObservableObject {
         }
     }
 
+    func appendLog(_ message: String) {
+        let entry = LogEntry(date: Date(), message: message)
+        eventLog.append(entry)
+        if eventLog.count > Self.maxLogEntries {
+            eventLog.removeFirst(eventLog.count - Self.maxLogEntries)
+        }
+    }
+
     /// 強制的にリソースを解放してidleへ戻す
     func forceReset() {
         logger.info("Force reset requested by user")
@@ -210,12 +233,15 @@ class StreamViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.currentState = state
 
+                self.appendLog(state.description)
+
                 switch state {
                 case .streaming:
                     // Notify if we recovered from reconnecting
                     if self.wasReconnecting {
                         self.wasReconnecting = false
                         self.notificationManager.notifyReconnected()
+                        self.appendLog("自動復旧に成功しました")
                     }
                     // Mark that we reached streaming state in this session
                     self.didReachStreamingState = true

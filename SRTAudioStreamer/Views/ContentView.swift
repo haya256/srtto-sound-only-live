@@ -22,7 +22,8 @@ struct ContentView: View {
                         state: viewModel.currentState,
                         bitrate: viewModel.currentBitrate,
                         audioLevel: viewModel.currentAudioLevel,
-                        errorMessage: viewModel.errorMessage
+                        errorMessage: viewModel.errorMessage,
+                        eventLog: viewModel.eventLog
                     )
 
                     // Control panel

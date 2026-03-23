@@ -13,6 +13,7 @@ struct StreamStatusView: View {
     let bitrate: Double
     let audioLevel: Float
     let errorMessage: String?
+    let eventLog: [StreamViewModel.LogEntry]
 
     var body: some View {
         VStack(spacing: 16) {
@@ -89,6 +90,34 @@ struct StreamStatusView: View {
                 .background(Color.red.opacity(0.1))
                 .cornerRadius(8)
             }
+
+            // Event log
+            if !eventLog.isEmpty {
+                DisclosureGroup("イベントログ (\(eventLog.count)件)") {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 2) {
+                                ForEach(eventLog.reversed()) { entry in
+                                    HStack(alignment: .top, spacing: 6) {
+                                        Text(entry.timeString)
+                                            .font(.system(.caption2, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 60, alignment: .leading)
+                                        Text(entry.message)
+                                            .font(.caption2)
+                                            .foregroundColor(.primary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .id(entry.id)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .frame(maxHeight: 160)
+                    }
+                }
+                .font(.caption)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity)
@@ -120,28 +149,28 @@ struct StreamStatusView: View {
             state: .idle,
             bitrate: 0,
             audioLevel: 0,
-            errorMessage: nil
-        )
-
-        StreamStatusView(
-            state: .connecting,
-            bitrate: 0,
-            audioLevel: 0,
-            errorMessage: nil
+            errorMessage: nil,
+            eventLog: []
         )
 
         StreamStatusView(
             state: .streaming,
             bitrate: 64.0,
             audioLevel: 45.0,
-            errorMessage: nil
+            errorMessage: nil,
+            eventLog: [
+                .init(date: Date().addingTimeInterval(-30), message: "配信中"),
+                .init(date: Date().addingTimeInterval(-90), message: "再接続中 (1/5)"),
+                .init(date: Date().addingTimeInterval(-100), message: "エラー: 接続が切断されました"),
+            ]
         )
 
         StreamStatusView(
             state: .error("接続に失敗しました"),
             bitrate: 0,
             audioLevel: 0,
-            errorMessage: "サーバーに接続できません"
+            errorMessage: "サーバーに接続できません",
+            eventLog: []
         )
     }
     .padding()
