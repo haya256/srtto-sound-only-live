@@ -6,9 +6,11 @@
 //
 
 import Foundation
+import AVFoundation
 import Combine
 import os.log
 import UserNotifications
+import HaishinKit
 
 /// ViewModel for managing streaming state and business logic
 @MainActor
@@ -49,6 +51,9 @@ class StreamViewModel: ObservableObject {
     private let streamingService: SRTStreamingService
     private let audioSessionManager: AudioSessionManager
     private let notificationManager = NotificationManager.shared
+
+    /// Stable MTHKView instance used for camera preview during video streaming
+    let previewView = MTHKView(frame: .zero)
 
     /// Set to true before user-initiated stop to suppress unexpected-stop notification
     private var isUserInitiatedStop = false
@@ -179,6 +184,9 @@ class StreamViewModel: ObservableObject {
     }
 
     private func performStartStreaming() async {
+        // Pass preview view to service when video is enabled
+        streamingService.videoPreviewOutput = configuration.videoEnabled ? previewView : nil
+
         do {
             try streamingService.startStreaming(configuration: configuration)
             logger.info("Streaming started successfully")
@@ -188,6 +196,13 @@ class StreamViewModel: ObservableObject {
             currentState = .error(error.localizedDescription)
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Toggles between front and back camera during video streaming
+    func flipCamera() {
+        let next: AVCaptureDevice.Position = configuration.cameraPosition == .front ? .back : .front
+        configuration.cameraPosition = next
+        Task { await streamingService.switchCamera(to: next) }
     }
 
     private func saveURLToHistory(name: String, url: String) {

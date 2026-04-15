@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AVFoundation
 
 /// A named SRT address entry saved in history
 struct SRTEntry: Codable, Identifiable {
@@ -50,6 +51,12 @@ struct StreamConfiguration {
 
     /// Audio sample rate in Hz (default: 44100 Hz)
     var sampleRate: Double = 44100
+
+    /// Whether video is included in the stream (default: false)
+    var videoEnabled: Bool = false
+
+    /// Camera position when video is enabled (default: front)
+    var cameraPosition: AVCaptureDevice.Position = .front
 
     /// Available bitrate presets (in kbps)
     static let bitratePresets: [Int] = [32, 64, 96, 128]

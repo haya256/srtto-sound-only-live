@@ -57,6 +57,22 @@ struct ContentView: View {
             }
         }
         .overlay {
+            if viewModel.configuration.videoEnabled && viewModel.isStreaming {
+                VStack {
+                    HStack {
+                        Spacer()
+                        CameraPreviewView(view: viewModel.previewView)
+                            .frame(width: 120, height: 90)
+                            .cornerRadius(8)
+                            .clipped()
+                            .padding(12)
+                    }
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .overlay {
             if showingBrowser, let url = browserURL {
                 ZStack {
                     Color.black.opacity(0.4)

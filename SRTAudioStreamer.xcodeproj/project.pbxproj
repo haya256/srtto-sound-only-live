@@ -20,6 +20,7 @@
 		A1000021000000000000001 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1000022000000000000001 /* SRTHaishinKit */; };
 		A1000045000000000000001 /* AudioLevelMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000046000000000000001 /* AudioLevelMonitor.swift */; };
 		A1000047000000000000001 /* SafariBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000048000000000000001 /* SafariBrowserView.swift */; };
+		A1000049000000000000001 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000050000000000000001 /* CameraPreviewView.swift */; };
 		A611E9E12F4BD46800296A4C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A611E9E02F4BD46800296A4C /* NotificationManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +39,7 @@
 		A1000024000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000046000000000000001 /* AudioLevelMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLevelMonitor.swift; sourceTree = "<group>"; };
 		A1000048000000000000001 /* SafariBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariBrowserView.swift; sourceTree = "<group>"; };
+		A1000050000000000000001 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
 		A611E9E02F4BD46800296A4C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -108,6 +110,7 @@
 				A1000012000000000000001 /* StreamControlView.swift */,
 				A1000014000000000000001 /* StreamStatusView.swift */,
 				A1000048000000000000001 /* SafariBrowserView.swift */,
+				A1000050000000000000001 /* CameraPreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -217,6 +220,7 @@
 				A1000017000000000000001 /* AudioSessionManager.swift in Sources */,
 				A1000045000000000000001 /* AudioLevelMonitor.swift in Sources */,
 				A1000047000000000000001 /* SafariBrowserView.swift in Sources */,
+				A1000049000000000000001 /* CameraPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

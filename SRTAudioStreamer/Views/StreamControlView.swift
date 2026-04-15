@@ -306,6 +306,26 @@ struct StreamControlView: View {
                         .pickerStyle(.segmented)
                         .disabled(viewModel.isStreaming)
                     }
+
+                    // Video streaming toggle
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("映像配信", isOn: $viewModel.configuration.videoEnabled)
+                            .font(.subheadline)
+                            .disabled(viewModel.isStreaming)
+
+                        if viewModel.configuration.videoEnabled {
+                            Button {
+                                viewModel.flipCamera()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.triangle.2.circlepath.camera")
+                                    Text(viewModel.configuration.cameraPosition == .front ? "前面カメラ使用中" : "背面カメラ使用中")
+                                }
+                                .font(.subheadline)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
                 }
                 .padding(.top, 8)
             }

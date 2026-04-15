@@ -26,6 +26,8 @@ class SRTStreamingService {
     private var mixer: MediaMixer?
     private var audioSessionManager: AudioSessionManager
     private var audioLevelMonitor: AudioLevelMonitor?
+    /// Optional preview view to attach as a mixer output when video is enabled
+    var videoPreviewOutput: MTHKView?
     private var monitoringTask: Task<Void, Never>?
     private var lastURL: URL?
     private var lastConfiguration: StreamConfiguration?
@@ -135,13 +137,40 @@ class SRTStreamingService {
         try await srtStream.setAudioSettings(audioSettings)
         logger.info("Audio settings configured: bitrate=\(configuration.bitrate)")
 
-        // Set expected media to audio only
-        await srtStream.setExpectedMedias([.audio])
-        logger.info("Expected media set to audio only")
+        // Attach camera and configure video if enabled
+        if configuration.videoEnabled {
+            let cameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: configuration.cameraPosition)
+            if let cameraDevice {
+                try await mediaMixer.attachVideo(cameraDevice, track: 0)
+                logger.info("Camera attached: \(cameraDevice.localizedName)")
+            } else {
+                logger.warning("Requested camera not found, streaming without video")
+            }
+
+            var videoSettings = VideoCodecSettings()
+            videoSettings.videoSize = CGSize(width: 640, height: 480)
+            videoSettings.bitRate = 500_000
+            videoSettings.frameInterval = VideoCodecSettings.frameInterval30
+            try await srtStream.setVideoSettings(videoSettings)
+            logger.info("Video settings configured: 640x480, 500kbps")
+
+            await srtStream.setExpectedMedias([.audio, .video])
+            logger.info("Expected media set to audio + video")
+        } else {
+            // Set expected media to audio only
+            await srtStream.setExpectedMedias([.audio])
+            logger.info("Expected media set to audio only")
+        }
 
         // Add stream as output to mixer
         await mediaMixer.addOutput(srtStream)
         logger.info("Stream added to mixer output")
+
+        // Add preview view as output if video is enabled
+        if configuration.videoEnabled, let preview = videoPreviewOutput {
+            await mediaMixer.addOutput(preview)
+            logger.info("Preview view added to mixer output")
+        }
 
         // Start mixer
         await mediaMixer.startRunning()
@@ -165,7 +194,11 @@ class SRTStreamingService {
             await srtConnection.close()
             await mediaMixer.stopRunning()
             try? await mediaMixer.attachAudio(nil)
+            try? await mediaMixer.attachVideo(nil, track: 0)
             await mediaMixer.removeOutput(srtStream)
+            if let preview = videoPreviewOutput {
+                await mediaMixer.removeOutput(preview)
+            }
             throw error
         }
 
@@ -236,8 +269,12 @@ class SRTStreamingService {
         if let mixer = mixer {
             await mixer.stopRunning()
             try? await mixer.attachAudio(nil)
+            try? await mixer.attachVideo(nil, track: 0)
             if let stream = stream {
                 await mixer.removeOutput(stream)
+            }
+            if let preview = videoPreviewOutput {
+                await mixer.removeOutput(preview)
             }
         }
 
@@ -421,6 +458,21 @@ class SRTStreamingService {
         await cleanupCurrentResources()
         // AudioSessionを非アクティブにする
         audioSessionManager.deactivateAudioSession()
+    }
+
+    /// Switches the camera to the specified position during an active stream
+    func switchCamera(to position: AVCaptureDevice.Position) async {
+        guard let mixer else { return }
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
+            logger.warning("Camera not found for position: \(position.rawValue)")
+            return
+        }
+        do {
+            try await mixer.attachVideo(device, track: 0)
+            logger.info("Camera switched to position: \(position.rawValue)")
+        } catch {
+            logger.error("Failed to switch camera: \(error.localizedDescription)")
+        }
     }
 
     /// リソースを強制的に解放してidleへ戻す（ViewModel経由で呼び出す）
